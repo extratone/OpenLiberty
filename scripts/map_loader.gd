@@ -1,3 +1,4 @@
+class_name MapLoader
 extends Node
 
 var items: Dictionary[int, ItemDef]

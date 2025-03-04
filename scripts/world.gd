@@ -5,15 +5,19 @@ extends Node
 @onready var moon = $moon
 @onready var sky = $WorldEnvironment
 var car := preload("res://scenes/car.tscn")
+var map_loader: MapLoader
 
 func _ready() -> void:
+	map_loader = MapLoader.new()
+	add_child(map_loader)
+	
 	var start := Time.get_ticks_msec()
-	var target = MapBuilder.placements.size()
+	var target = map_loader.placements.size()
 	var count := 0
 	var start_t := Time.get_ticks_msec()
-#	add_child(MapBuilder.map)
-	for ipl in MapBuilder.placements:
-		world.add_child(MapBuilder.spawn_placement(ipl))
+#	add_child(map_loader.map)
+	for ipl in map_loader.placements:
+		world.add_child(map_loader.spawn_placement(ipl))
 		count += 1
 		if Time.get_ticks_msec() - start > (1.0 / 30.0) * 1000:
 			start = Time.get_ticks_msec()
