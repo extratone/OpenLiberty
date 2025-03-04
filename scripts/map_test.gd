@@ -1,6 +1,5 @@
 extends Node
 
-@onready var world := Node3D.new()
 var suzanne := preload("res://prefabs/suzanne.tscn")
 var map_loader: MapLoader
 
@@ -8,20 +7,18 @@ func _ready() -> void:
 	map_loader = MapLoader.new()
 	add_child(map_loader)
 	
-	var start := Time.get_ticks_msec()
-	var target = map_loader.placements.size()
-	var count := 0
-	var start_t := Time.get_ticks_msec()
-#	add_child(map_loader.map)
-	for ipl in map_loader.placements:
-		world.add_child(map_loader.spawn_placement(ipl))
-		count += 1
-		if Time.get_ticks_msec() - start > (1.0 / 30.0) * 1000:
-			start = Time.get_ticks_msec()
-			print("%f" % (float(count) / float(target)))
-			await get_tree().physics_frame
-	print("Map load completed in %f seconds" % ((Time.get_ticks_msec() - start_t) / 1000))
-	add_child(world)
+	# Connect signals for progress updates
+	map_loader.loading_progress.connect(_on_loading_progress)
+	map_loader.loading_completed.connect(_on_loading_completed)
+	
+	# Start loading the map
+	await map_loader.load_map()
+
+func _on_loading_progress(progress: float) -> void:
+	print("Loading: %d%%" % int(progress * 100))
+	
+func _on_loading_completed(world_node: Node3D) -> void:
+	add_child(world_node)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey:

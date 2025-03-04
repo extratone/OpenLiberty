@@ -1,6 +1,9 @@
 class_name MapLoader
 extends Node
 
+signal loading_progress(progress_percent: float)
+signal loading_completed(map_node: Node3D)
+
 var items: Dictionary[int, ItemDef]
 var itemchilds: Array[TDFX]
 var placements: Array[ItemPlacement]
@@ -118,8 +121,26 @@ func _read_map_data(path: String, line_handler: Callable) -> void:
 		else:
 			line_handler.call(section, tokens)
 
-func clear_map() -> void:
+func load_map() -> Node3D:
 	map = Node3D.new()
+	
+	var start := Time.get_ticks_msec()
+	var target = placements.size()
+	var count := 0
+	var start_t := Time.get_ticks_msec()
+	
+	for ipl in placements:
+		map.add_child(spawn_placement(ipl))
+		count += 1
+		if Time.get_ticks_msec() - start > (1.0 / 30.0) * 1000:
+			start = Time.get_ticks_msec()
+			var progress = float(count) / float(target)
+			emit_signal("loading_progress", progress)
+			await get_tree().physics_frame
+	
+	print("Map load completed in %f seconds" % ((Time.get_ticks_msec() - start_t) / 1000.0))
+	emit_signal("loading_completed", map)
+	return map
 
 func spawn_placement(ipl: ItemPlacement) -> Node3D:
 	return spawn(ipl.id, ipl.model_name, ipl.position, ipl.scale, ipl.rotation)
