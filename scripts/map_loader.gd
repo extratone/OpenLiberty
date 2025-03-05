@@ -164,11 +164,10 @@ func spawn(id: int, model_name: String, position: Vector3, scale: Vector3, rotat
 			light.position = child.position
 			light.light_color = child.color
 			light.distance_fade_enabled = true
-			# TODO: Remove half distance when https://github.com/godotengine/godot/issues/56657 is solved
-			light.distance_fade_begin = child.render_distance / 2.0
+			light.distance_fade_begin = child.render_distance
 			light.omni_range = child.range
 			light.light_energy = float(child.shadow_intensity) / 20.0
-#			light.shadow_enabled = true
+			light.shadow_enabled = true
 			instance.add_child(light)
 	var sb := StaticBody3D.new()
 	if item.colfile != null:
