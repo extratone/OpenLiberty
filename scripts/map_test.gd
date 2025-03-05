@@ -9,16 +9,14 @@ func _ready() -> void:
 	
 	# Connect signals for progress updates
 	map_loader.loading_progress.connect(_on_loading_progress)
-	map_loader.loading_completed.connect(_on_loading_completed)
 	
-	# Start loading the map
-	await map_loader.load_map()
+	# TODO: Implement a proper loading screen before enabling threaded loading
+	# For now, load the map directly
+	var map := map_loader.load_map()
+	add_child(map)
 
 func _on_loading_progress(progress: float) -> void:
 	print("Loading: %d%%" % int(progress * 100))
-	
-func _on_loading_completed(world_node: Node3D) -> void:
-	add_child(world_node)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey:

@@ -12,18 +12,18 @@ func _ready() -> void:
 	
 	# Connect signals for progress updates
 	map_loader.loading_progress.connect(_on_loading_progress)
-	map_loader.loading_completed.connect(_on_loading_completed)
 	
-	# Start loading the map
-	await map_loader.load_map()
-
-func _on_loading_progress(progress: float) -> void:
-	print("Loading: %d%%" % int(progress * 100))
+	# TODO: Implement a proper loading screen before enabling threaded loading
+	# For now, load the map directly
+	var world_node := map_loader.load_map()
 	
-func _on_loading_completed(world_node: Node3D) -> void:
+	# Add world to scene and setup environment
 	add_child(world_node)
 	sky.environment = load("res://scenes/world/day.tres")
 	moon.visible = not moon.visible
+
+func _on_loading_progress(progress: float) -> void:
+	print("Loading: %d%%" % int(progress * 100))
 
 func _unhandled_input(event: InputEvent) -> void:
 	if Input.is_action_pressed("spawn"):

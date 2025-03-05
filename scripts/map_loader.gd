@@ -2,7 +2,6 @@ class_name MapLoader
 extends Node
 
 signal loading_progress(progress_percent: float)
-signal loading_completed(map_node: Node3D)
 
 var _items: Dictionary[int, ItemDef]
 var _itemchilds: Array[TDFX]
@@ -90,62 +89,65 @@ func _read_map_data(path: String, line_handler: Callable) -> void:
 		else:
 			line_handler.call(section, tokens)
 
-func load_map() -> Node3D:
-	if not _parsed:
-		var file := FileAccess.open(GameManager.gta_path + "data/gta3.dat", FileAccess.READ)
-		assert(file != null, "%d" % FileAccess.get_open_error())
+func parse_map_data() -> void:
+	if _parsed:
+		return
+		
+	var file := FileAccess.open(GameManager.gta_path + "data/gta3.dat", FileAccess.READ)
+	assert(file != null, "%d" % FileAccess.get_open_error())
 
-		print("Loading map data...")
-		while not file.eof_reached():
-			var line := file.get_line()
-			if not line.begins_with("#"):
-				var tokens := line.split(" ", false)
-				if tokens.size() > 0:
-					match tokens[0]:
-						"IDE":
-							_read_map_data(tokens[1], _read_ide_line)
-						"COLFILE":
-							var colfile := AssetLoader.open(GameManager.gta_path + tokens[2])
-							
-							while colfile.get_position() < colfile.get_length():
-								_collisions.append(ColFile.new(colfile))
-						"IPL":
-							_read_map_data(tokens[1], _read_ipl_line)
-						"CDIMAGE":
-							AssetLoader.load_cd_image(tokens[1])
-						_:
-							push_warning("implement %s" % tokens[0])
-		for child in _itemchilds:
-			_items[child.parent].childs.append(child)
-		for colfile in _collisions:
-			if colfile.model_id in _items:
-				_items[colfile.model_id].colfile = colfile
-			else:
-				for k in _items:
-					var item := _items[k] as ItemDef
-					if item.model_name.matchn(colfile.model_name):
-						_items[k].colfile = colfile
-		_parsed = true
+	print("Loading map data...")
+	while not file.eof_reached():
+		var line := file.get_line()
+		if not line.begins_with("#"):
+			var tokens := line.split(" ", false)
+			if tokens.size() > 0:
+				match tokens[0]:
+					"IDE":
+						_read_map_data(tokens[1], _read_ide_line)
+					"COLFILE":
+						var colfile := AssetLoader.open(GameManager.gta_path + tokens[2])
+						
+						while colfile.get_position() < colfile.get_length():
+							_collisions.append(ColFile.new(colfile))
+					"IPL":
+						_read_map_data(tokens[1], _read_ipl_line)
+					"CDIMAGE":
+						AssetLoader.load_cd_image(tokens[1])
+					_:
+						push_warning("implement %s" % tokens[0])
+	for child in _itemchilds:
+		_items[child.parent].childs.append(child)
+	for colfile in _collisions:
+		if colfile.model_id in _items:
+			_items[colfile.model_id].colfile = colfile
+		else:
+			for k in _items:
+				var item := _items[k] as ItemDef
+				if item.model_name.matchn(colfile.model_name):
+					_items[k].colfile = colfile
+	_parsed = true
+
+func load_map() -> Node3D:
+	# Make sure map data is parsed
+	parse_map_data()
 	
 	var map := Node3D.new()
 	
-	var start := Time.get_ticks_msec()
+	var start_t := Time.get_ticks_msec()
 	var target = _placements.size()
 	var count := 0
-	var start_t := Time.get_ticks_msec()
 	
 	print("Loading map...")
 	for ipl in _placements:
 		map.add_child(spawn_placement(ipl))
 		count += 1
-		if Time.get_ticks_msec() - start > (1.0 / 30.0) * 1000:
-			start = Time.get_ticks_msec()
-			var progress = float(count) / float(target)
-			emit_signal("loading_progress", progress)
-			await get_tree().physics_frame
+		
+		# No await statement - calculate and emit progress, but don't yield
+		var progress = float(count) / float(target)
+		call_deferred("emit_signal", "loading_progress", progress)
 	
 	print("Map load completed in %f seconds" % ((Time.get_ticks_msec() - start_t) / 1000.0))
-	emit_signal("loading_completed", map)
 	return map
 
 func spawn_placement(ipl: ItemPlacement) -> Node3D:
