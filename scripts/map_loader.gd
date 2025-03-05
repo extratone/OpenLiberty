@@ -4,12 +4,11 @@ extends Node
 signal loading_progress(progress_percent: float)
 signal loading_completed(map_node: Node3D)
 
-var items: Dictionary[int, ItemDef]
-var itemchilds: Array[TDFX]
-var placements: Array[ItemPlacement]
-var collisions: Array[ColFile]
-var map: Node3D
-var _loaded := false
+var _items: Dictionary[int, ItemDef]
+var _itemchilds: Array[TDFX]
+var _placements: Array[ItemPlacement]
+var _collisions: Array[ColFile]
+var _parsed := false
 
 func _ready() -> void:
 	pass
@@ -23,12 +22,12 @@ func _read_ide_line(section: String, tokens: Array[String]):
 			item.txd_name = tokens[2]
 			item.render_distance = tokens[4].to_float()
 			item.flags = tokens[tokens.size() - 1].to_int()
-			items[id] = item
+			_items[id] = item
 		"tobj":
 			# TODO: Timed objects
 			item.model_name = tokens[1]
 			item.txd_name = tokens[2]
-			items[id] = item
+			_items[id] = item
 		"2dfx":
 			var parent := tokens[0].to_int()
 			# Convert GTA to Godot coordinate system
@@ -49,7 +48,7 @@ func _read_ide_line(section: String, tokens: Array[String]):
 					lightdef.render_distance = tokens[11].to_float()
 					lightdef.range = tokens[12].to_float()
 					lightdef.shadow_intensity = tokens[15].to_int()
-					itemchilds.append(lightdef)
+					_itemchilds.append(lightdef)
 				var type:
 					push_warning("implement 2DFX type %d" % type)
 
@@ -75,7 +74,7 @@ func _read_ipl_line(section: String, tokens: Array[String]):
 				-tokens[10].to_float(),
 				-tokens[9].to_float(),
 				tokens[11].to_float(), )
-			placements.append(placement)
+			_placements.append(placement)
 
 func _read_map_data(path: String, line_handler: Callable) -> void:
 	var file := AssetLoader.open(path)
@@ -92,9 +91,11 @@ func _read_map_data(path: String, line_handler: Callable) -> void:
 			line_handler.call(section, tokens)
 
 func load_map() -> Node3D:
-	if not _loaded:
+	if not _parsed:
 		var file := FileAccess.open(GameManager.gta_path + "data/gta3.dat", FileAccess.READ)
 		assert(file != null, "%d" % FileAccess.get_open_error())
+
+		print("Loading map data...")
 		while not file.eof_reached():
 			var line := file.get_line()
 			if not line.begins_with("#"):
@@ -107,33 +108,34 @@ func load_map() -> Node3D:
 							var colfile := AssetLoader.open(GameManager.gta_path + tokens[2])
 							
 							while colfile.get_position() < colfile.get_length():
-								collisions.append(ColFile.new(colfile))
+								_collisions.append(ColFile.new(colfile))
 						"IPL":
 							_read_map_data(tokens[1], _read_ipl_line)
 						"CDIMAGE":
 							AssetLoader.load_cd_image(tokens[1])
 						_:
 							push_warning("implement %s" % tokens[0])
-		for child in itemchilds:
-			items[child.parent].childs.append(child)
-		for colfile in collisions:
-			if colfile.model_id in items:
-				items[colfile.model_id].colfile = colfile
+		for child in _itemchilds:
+			_items[child.parent].childs.append(child)
+		for colfile in _collisions:
+			if colfile.model_id in _items:
+				_items[colfile.model_id].colfile = colfile
 			else:
-				for k in items:
-					var item := items[k] as ItemDef
+				for k in _items:
+					var item := _items[k] as ItemDef
 					if item.model_name.matchn(colfile.model_name):
-						items[k].colfile = colfile
-		_loaded = true
+						_items[k].colfile = colfile
+		_parsed = true
 	
-	map = Node3D.new()
+	var map := Node3D.new()
 	
 	var start := Time.get_ticks_msec()
-	var target = placements.size()
+	var target = _placements.size()
 	var count := 0
 	var start_t := Time.get_ticks_msec()
 	
-	for ipl in placements:
+	print("Loading map...")
+	for ipl in _placements:
 		map.add_child(spawn_placement(ipl))
 		count += 1
 		if Time.get_ticks_msec() - start > (1.0 / 30.0) * 1000:
@@ -150,7 +152,7 @@ func spawn_placement(ipl: ItemPlacement) -> Node3D:
 	return spawn(ipl.id, ipl.model_name, ipl.position, ipl.scale, ipl.rotation)
 
 func spawn(id: int, model_name: String, position: Vector3, scale: Vector3, rotation: Quaternion) -> Node3D:
-	var item := items[id] as ItemDef
+	var item := _items[id] as ItemDef
 	if item.flags & 0x40:
 		return Node3D.new()
 	var instance := StreamedMesh.new(item)
