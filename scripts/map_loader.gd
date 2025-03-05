@@ -12,37 +12,7 @@ var map: Node3D
 var _loaded := false
 
 func _ready() -> void:
-	var file := FileAccess.open(GameManager.gta_path + "data/gta3.dat", FileAccess.READ)
-	assert(file != null, "%d" % FileAccess.get_open_error())
-	while not file.eof_reached():
-		var line := file.get_line()
-		if not line.begins_with("#"):
-			var tokens := line.split(" ", false)
-			if tokens.size() > 0:
-				match tokens[0]:
-					"IDE":
-						_read_map_data(tokens[1], _read_ide_line)
-					"COLFILE":
-						var colfile := AssetLoader.open(GameManager.gta_path + tokens[2])
-						
-						while colfile.get_position() < colfile.get_length():
-							collisions.append(ColFile.new(colfile))
-					"IPL":
-						_read_map_data(tokens[1], _read_ipl_line)
-					"CDIMAGE":
-						AssetLoader.load_cd_image(tokens[1])
-					_:
-						push_warning("implement %s" % tokens[0])
-	for child in itemchilds:
-		items[child.parent].childs.append(child)
-	for colfile in collisions:
-		if colfile.model_id in items:
-			items[colfile.model_id].colfile = colfile
-		else:
-			for k in items:
-				var item := items[k] as ItemDef
-				if item.model_name.matchn(colfile.model_name):
-					items[k].colfile = colfile
+	pass
 
 func _read_ide_line(section: String, tokens: Array[String]):
 	var item := ItemDef.new()
@@ -122,6 +92,40 @@ func _read_map_data(path: String, line_handler: Callable) -> void:
 			line_handler.call(section, tokens)
 
 func load_map() -> Node3D:
+	if not _loaded:
+		var file := FileAccess.open(GameManager.gta_path + "data/gta3.dat", FileAccess.READ)
+		assert(file != null, "%d" % FileAccess.get_open_error())
+		while not file.eof_reached():
+			var line := file.get_line()
+			if not line.begins_with("#"):
+				var tokens := line.split(" ", false)
+				if tokens.size() > 0:
+					match tokens[0]:
+						"IDE":
+							_read_map_data(tokens[1], _read_ide_line)
+						"COLFILE":
+							var colfile := AssetLoader.open(GameManager.gta_path + tokens[2])
+							
+							while colfile.get_position() < colfile.get_length():
+								collisions.append(ColFile.new(colfile))
+						"IPL":
+							_read_map_data(tokens[1], _read_ipl_line)
+						"CDIMAGE":
+							AssetLoader.load_cd_image(tokens[1])
+						_:
+							push_warning("implement %s" % tokens[0])
+		for child in itemchilds:
+			items[child.parent].childs.append(child)
+		for colfile in collisions:
+			if colfile.model_id in items:
+				items[colfile.model_id].colfile = colfile
+			else:
+				for k in items:
+					var item := items[k] as ItemDef
+					if item.model_name.matchn(colfile.model_name):
+						items[k].colfile = colfile
+		_loaded = true
+	
 	map = Node3D.new()
 	
 	var start := Time.get_ticks_msec()
