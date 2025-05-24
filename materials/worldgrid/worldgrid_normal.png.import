@@ -3,16 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b26xof5bu74lw"
-path.s3tc="res://.godot/imported/worldgrid_normal.png-779403a947ac888846209ba9e36ea482.s3tc.ctex"
+path.etc2="res://.godot/imported/worldgrid_normal.png-779403a947ac888846209ba9e36ea482.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://materials/worldgrid/worldgrid_normal.png"
-dest_files=["res://.godot/imported/worldgrid_normal.png-779403a947ac888846209ba9e36ea482.s3tc.ctex"]
+dest_files=["res://.godot/imported/worldgrid_normal.png-779403a947ac888846209ba9e36ea482.etc2.ctex"]
 
 [params]
 
