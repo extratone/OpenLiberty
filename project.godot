@@ -193,5 +193,15 @@ renderer/rendering_method="forward_plus"
 
 [xogot]
 
-project/editorState=[]
+project/editorState=[{
+"column": 0,
+"current": true,
+"line": 11,
+"path": "res://scripts/map_builder.gd",
+"type": "file"
+}]
 project/breakpoints={}
+
+[xr]
+
+openxr/enabled=true
